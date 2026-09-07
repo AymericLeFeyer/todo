@@ -3,6 +3,8 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { Toaster } from 'sonner';
 import { AuthGate } from '@/presentation/components/layout/auth-gate';
 import { InboxPage } from '@/presentation/pages/inbox-page';
+import { NewTaskPage } from '@/presentation/pages/new-task-page';
+import { TaskDetailPage } from '@/presentation/pages/task-detail-page';
 import { TodayPage } from '@/presentation/pages/today-page';
 
 const queryClient = new QueryClient({
@@ -26,6 +28,8 @@ export function App() {
             <Route path="/" element={<Navigate to="/today" replace />} />
             <Route path="/today" element={<TodayPage />} />
             <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/new" element={<NewTaskPage />} />
+            <Route path="/task/:id" element={<TaskDetailPage />} />
             <Route path="*" element={<Navigate to="/today" replace />} />
           </Routes>
         </AuthGate>
