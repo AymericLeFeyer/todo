@@ -1,7 +1,8 @@
-import { CalendarDays, Inbox, ListTodo, Plus, Settings } from 'lucide-react';
+import { CalendarDays, Hash, Inbox, ListTodo, Plus, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTodayStats } from '@/application/task/task-queries';
+import { useHeaderHeight } from '@/presentation/hooks/use-header-height';
 import { cn } from '@/shared/lib/utils';
 
 interface NavItem {
@@ -16,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/today', label: "Aujourd'hui", icon: ListTodo, withBadge: true },
   { to: '/upcoming', label: 'Agenda', icon: CalendarDays },
   { to: '/inbox', label: 'Inbox', icon: Inbox },
+  { to: '/tags', label: 'Tags', icon: Hash },
   { to: '/settings', label: 'Réglages', icon: Settings },
 ];
 
@@ -35,6 +37,7 @@ export interface AppShellProps {
 export function AppShell({ title, subtitle, actions, children }: AppShellProps) {
   const navigate = useNavigate();
   const { data: stats } = useTodayStats();
+  const headerRef = useHeaderHeight();
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
@@ -48,7 +51,10 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+        <header
+          ref={headerRef}
+          className="safe-top sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur"
+        >
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>

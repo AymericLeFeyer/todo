@@ -4,8 +4,10 @@ import { Toaster } from 'sonner';
 import { AuthGate } from '@/presentation/components/layout/auth-gate';
 import { InboxPage } from '@/presentation/pages/inbox-page';
 import { NewTaskPage } from '@/presentation/pages/new-task-page';
+import { TagTasksPage, TagsPage } from '@/presentation/pages/tags-page';
 import { TaskDetailPage } from '@/presentation/pages/task-detail-page';
 import { TodayPage } from '@/presentation/pages/today-page';
+import { UpcomingPage } from '@/presentation/pages/upcoming-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +29,10 @@ export function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/today" replace />} />
             <Route path="/today" element={<TodayPage />} />
+            <Route path="/upcoming" element={<UpcomingPage />} />
             <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/tags" element={<TagsPage />} />
+            <Route path="/tags/:slug" element={<TagTasksPage />} />
             <Route path="/new" element={<NewTaskPage />} />
             <Route path="/task/:id" element={<TaskDetailPage />} />
             <Route path="*" element={<Navigate to="/today" replace />} />
