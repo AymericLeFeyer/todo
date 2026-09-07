@@ -66,6 +66,7 @@ export function TagTasksPage() {
     <AppShell
       title={tag?.name ?? slug ?? 'Tag'}
       subtitle={tasks ? `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} en cours` : undefined}
+      newTaskQuery={`?tag=${slug}`}
       actions={
         <Link
           to={`/new?tag=${slug}`}

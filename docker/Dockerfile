@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-# Base Debian plutôt qu'Alpine : better-sqlite3 publie des binaires précompilés
-# pour la glibc, ce qui évite d'embarquer une chaîne de compilation C++.
+# Base Debian plutôt qu'Alpine : better-sqlite3 se lie à la glibc, et la
+# compilation d'un module natif sur musl réserve d'autres surprises.
 FROM node:24-slim AS base
 WORKDIR /app
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
@@ -14,7 +14,16 @@ COPY packages/core/package.json packages/core/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 
-FROM manifests AS deps
+# better-sqlite3 est un module natif : quand aucun binaire précompilé ne
+# correspond à l'ABI de l'image, node-gyp prend le relais et réclame Python et
+# un compilateur C++. Ces outils restent cantonnés aux étapes d'installation :
+# l'image finale repart de `base` et n'embarque que le `.node` compilé.
+FROM manifests AS toolchain
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM toolchain AS deps
 RUN npm ci
 
 FROM deps AS build
@@ -23,7 +32,7 @@ RUN npm run build -w @todo/core \
   && npm run build -w @todo/api \
   && npm run build -w @todo/web
 
-FROM manifests AS prod-deps
+FROM toolchain AS prod-deps
 RUN npm ci --omit=dev
 
 FROM base AS runtime

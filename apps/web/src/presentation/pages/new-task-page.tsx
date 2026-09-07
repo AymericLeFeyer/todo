@@ -1,4 +1,13 @@
-import { quickParse, slugifyTag, type DateOnly, type TaskDuration } from '@todo/core';
+import {
+  fromDateOnly,
+  quickParse,
+  relativeDayLabel,
+  slugifyTag,
+  type DateOnly,
+  type TaskDuration,
+} from '@todo/core';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { ArrowUp, Sparkles, X } from 'lucide-react';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -60,7 +69,17 @@ export function NewTaskPage() {
         notes: notes.trim() || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (task) => {
+          // L'écran se referme sur la vue d'où l'on vient, où la tâche
+          // n'apparaît pas forcément (une tâche sans date part dans l'Inbox).
+          // Le message dit donc toujours où elle a atterri, et propose d'y aller.
+          toast.success(`Ajoutée à ${describeDestination(task.dueDate)}`, {
+            action: {
+              label: 'Voir',
+              onClick: () => navigate(task.dueDate === null ? '/inbox' : '/upcoming'),
+            },
+          });
+
           if (keepOpen) {
             // « Enregistrer et continuer » : on garde date, durée et tags pour
             // enchaîner une série de tâches sans tout re-choisir.
@@ -70,7 +89,6 @@ export function NewTaskPage() {
             setManualDuration(duration);
             setManualTags(tags);
             inputRef.current?.focus();
-            toast.success('Tâche ajoutée');
           } else {
             navigate(-1);
           }
@@ -157,6 +175,14 @@ export function NewTaskPage() {
       </div>
     </form>
   );
+}
+
+/** « aujourd'hui », « l'Inbox », « lundi 14 septembre » : où la tâche a atterri. */
+function describeDestination(dueDate: DateOnly | null): string {
+  if (dueDate === null) return "l'Inbox";
+  const label = relativeDayLabel(dueDate);
+  if (label) return label.toLowerCase();
+  return format(fromDateOnly(dueDate), 'EEEE d MMMM', { locale: fr });
 }
 
 function parseInitialDate(value: string | null): DateOnly | null | undefined {

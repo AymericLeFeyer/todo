@@ -84,7 +84,11 @@ export function UpcomingPage() {
   };
 
   return (
-    <AppShell title="Agenda" subtitle="Glisse une tâche pour la déplacer d'un jour à l'autre">
+    <AppShell
+      title="Agenda"
+      subtitle="Glisse une tâche pour la déplacer d'un jour à l'autre"
+      newTaskQuery={`?date=${from}`}
+    >
       {isPending ? (
         <TaskListSkeleton rows={6} />
       ) : (

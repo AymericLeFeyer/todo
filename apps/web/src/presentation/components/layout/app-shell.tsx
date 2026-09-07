@@ -26,6 +26,12 @@ export interface AppShellProps {
   /** Contenu additionnel affiché sous le titre (compteurs, filtres). */
   subtitle?: ReactNode;
   actions?: ReactNode;
+  /**
+   * Contexte transmis à l'écran d'ajout, par exemple `?date=2026-09-08`.
+   * Une tâche ajoutée depuis « Aujourd'hui » doit atterrir aujourd'hui, sinon
+   * elle part dans l'Inbox et semble ne pas avoir été créée.
+   */
+  newTaskQuery?: string;
   children: ReactNode;
 }
 
@@ -34,14 +40,16 @@ export interface AppShellProps {
  * (atteignable au pouce), colonne latérale à partir de `md`. Le bouton
  * d'ajout reste flottant et toujours accessible, c'est l'action principale.
  */
-export function AppShell({ title, subtitle, actions, children }: AppShellProps) {
+export function AppShell({ title, subtitle, actions, newTaskQuery, children }: AppShellProps) {
   const navigate = useNavigate();
   const { data: stats } = useTodayStats();
   const headerRef = useHeaderHeight();
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
-      <aside className="hidden w-56 shrink-0 border-r border-border bg-surface p-3 md:block">
+      {/* `sticky` + hauteur du viewport : sans cela, la colonne défile avec la
+          liste et le menu finit par sortir de l'écran. */}
+      <aside className="hidden w-56 shrink-0 border-r border-border bg-surface p-3 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto">
         <p className="px-3 pb-4 pt-2 text-lg font-semibold">Todo</p>
         <nav className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => (
@@ -70,7 +78,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
 
       <button
         type="button"
-        onClick={() => navigate('/new')}
+        onClick={() => navigate(`/new${newTaskQuery ?? ''}`)}
         aria-label="Ajouter une tâche"
         className={cn(
           'fixed right-5 z-40 flex size-14 items-center justify-center rounded-full',

@@ -28,6 +28,7 @@ export function TodayPage() {
   return (
     <AppShell
       title="Aujourd'hui"
+      newTaskQuery={`?date=${todayDate}`}
       subtitle={
         <span className="capitalize">
           {format(new Date(), 'EEEE d MMMM', { locale: fr })}
