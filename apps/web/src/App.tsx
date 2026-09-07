@@ -43,7 +43,20 @@ export function App() {
           </Routes>
         </AuthGate>
       </Router>
-      <Toaster position="top-center" theme="dark" richColors closeButton />
+      {/* Sans décalage de zone sûre, les messages passent sous l'heure et
+          l'encoche de l'iPhone. `mobileOffset` s'applique sous 600 px de large. */}
+      <Toaster
+        position="top-center"
+        theme="dark"
+        richColors
+        closeButton
+        offset={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
+        mobileOffset={{
+          top: 'calc(env(safe-area-inset-top) + 0.75rem)',
+          left: '0.75rem',
+          right: '0.75rem',
+        }}
+      />
     </QueryClientProvider>
   );
 }

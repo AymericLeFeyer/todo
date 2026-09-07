@@ -18,6 +18,7 @@ import { DurationChips } from '@/presentation/components/task/duration-chips';
 import { TagPicker } from '@/presentation/components/task/tag-picker';
 import { Button } from '@/presentation/components/ui/button';
 import { Textarea } from '@/presentation/components/ui/textarea';
+import { useKeyboardInset } from '@/presentation/hooks/use-keyboard-inset';
 
 /**
  * Écran d'ajout plein écran.
@@ -32,6 +33,9 @@ export function NewTaskPage() {
   const [searchParams] = useSearchParams();
   const create = useCreateTask();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Le clavier masquerait sinon les puces de date, de durée et de tags.
+  useKeyboardInset();
 
   const [raw, setRaw] = useState('');
   const [notes, setNotes] = useState('');
@@ -122,7 +126,7 @@ export function NewTaskPage() {
         </Button>
       </header>
 
-      <div className="flex-1 px-4 pt-2">
+      <div className="flex-1 px-4 pt-2" style={{ paddingBottom: 'var(--keyboard-inset, 0px)' }}>
         <Textarea
           ref={inputRef}
           autoFocus
@@ -161,7 +165,12 @@ export function NewTaskPage() {
         )}
       </div>
 
-      <div className="safe-bottom sticky bottom-0 space-y-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
+      {/* Remontée au-dessus du clavier : les puces restent visibles et
+          manipulables pendant qu'on tape, sans refermer la saisie. */}
+      <div
+        className="safe-bottom sticky bottom-0 space-y-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur transition-transform duration-150"
+        style={{ transform: 'translateY(calc(-1 * var(--keyboard-inset, 0px)))' }}
+      >
         <DueDateChips value={dueDate} onChange={setManualDate} />
         <DurationChips value={duration} onChange={setManualDuration} />
         <div className="flex items-end gap-2">

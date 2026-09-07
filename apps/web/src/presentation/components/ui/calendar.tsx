@@ -31,7 +31,11 @@ export function Calendar({ className, classNames, ...props }: CalendarProps) {
         day: 'p-0',
         day_button:
           'size-10 rounded-lg text-sm hover:bg-accent aria-selected:bg-primary aria-selected:text-primary-foreground',
-        today: 'font-bold text-primary aria-selected:text-primary-foreground',
+        // Le jour courant porte un anneau plutôt qu'une simple couleur : dans
+        // une grille dense, une nuance de texte seule ne se repère pas, et
+        // l'anneau reste lisible même quand ce jour est aussi sélectionné.
+        today:
+          'font-semibold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-primary [&>button]:text-primary [&>button[aria-selected=true]]:text-primary-foreground',
         outside: 'text-muted-foreground/40',
         disabled: 'opacity-30',
         ...classNames,

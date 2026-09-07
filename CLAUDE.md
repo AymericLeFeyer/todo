@@ -11,6 +11,10 @@ API REST filtrable par tags consommée par AyLabs.
 - `packages/core` — domaine pur partagé, Zod 4
 - `apps/api` — Fastify 5, better-sqlite3 13, web-push, node-cron
 - `apps/web` — React 19, Vite 8, Tailwind 4, **shadcn/ui** (choix figé), TanStack Query 5, dnd-kit
+- Identité : couleur primaire bleue (`oklch(0.55 0.22 258)` en clair,
+  `oklch(0.64 0.19 258)` en sombre) ; le rouge reste réservé au retard et aux
+  actions destructives. Icônes générées par `apps/web/scripts/generate-icons.mjs`
+  (fond plein, sans coin transparent : chaque plateforme applique son propre masque)
 - Tests : Vitest 5 (`--project core`, `--project api`)
 - CI : GitHub Actions (lint, format, typecheck, tests) puis publication de
   l'image sur `ghcr.io/aymericlefeyer/todo` en amd64 + arm64 à chaque push sur
@@ -150,6 +154,14 @@ Routes publiques (sans authentification) : `/api/health`, `/api/auth/login`,
 - **`APP_PASSWORD` vide = API ouverte** à qui peut l'atteindre sur le réseau.
   Voulu pour un homelab derrière VPN, dangereux dès que le service est exposé.
   Un avertissement est journalisé au démarrage.
+- **Zones sûres iOS** : tout ce qui se colle à un bord doit composer avec
+  `env(safe-area-inset-*)` — l'en-tête (`safe-top`), la barre d'onglets, et les
+  notifications, dont le décalage passe par les props `offset` / `mobileOffset`
+  de sonner. Sans cela, les messages disparaissent sous l'heure de l'iPhone.
+- **Clavier virtuel** : iOS ne redimensionne pas la fenêtre à son ouverture, si
+  bien que `100dvh` et `sticky bottom-0` visent toujours le bas de l'écran
+  physique. `useKeyboardInset` lit `visualViewport` et publie
+  `--keyboard-inset` ; l'écran d'ajout s'en sert pour remonter ses puces.
 - **Glisser-déposer mobile** : l'activation par appui long
   (`delay: 200, tolerance: 6`) est ce qui empêche le défilement au pouce
   d'arracher une tâche. Ne pas la retirer.

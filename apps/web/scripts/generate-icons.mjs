@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
  */
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
-const BACKGROUND = [214, 62, 48]; // rouge de la couleur primaire
+const BACKGROUND = [37, 99, 235]; // bleu de la couleur primaire (oklch 0.55 0.22 258)
 const FOREGROUND = [255, 255, 255];
 
 function createCanvas(size) {
@@ -31,7 +31,12 @@ function createCanvas(size) {
   };
 }
 
-/** Fond : carré plein pour les icônes maskable, coins arrondis sinon. */
+/**
+ * Fond plein, sans coin transparent : une icône à coins arrondis laisse des
+ * angles vides que chaque plateforme rend différemment (halo blanc dans un
+ * onglet, carré gris sur Android). iOS et Android appliquent de toute façon
+ * leur propre masque, donc autant leur donner un carré plein.
+ */
 function fillBackground(canvas, radiusRatio) {
   const { size } = canvas;
   const radius = size * radiusRatio;
@@ -141,9 +146,12 @@ function generate(name, size, { radiusRatio, checkScale }) {
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
-generate('icon-192.png', 192, { radiusRatio: 0.22, checkScale: 0.62 });
-generate('icon-512.png', 512, { radiusRatio: 0.22, checkScale: 0.62 });
-// Maskable : la zone de sécurité impose un motif réduit et un fond plein.
+generate('icon-192.png', 192, { radiusRatio: 0, checkScale: 0.62 });
+generate('icon-512.png', 512, { radiusRatio: 0, checkScale: 0.62 });
+// Maskable : la zone de sécurité impose un motif nettement réduit.
 generate('icon-maskable-512.png', 512, { radiusRatio: 0, checkScale: 0.44 });
 // iOS applique lui-même le masque arrondi et n'accepte pas la transparence.
 generate('apple-touch-icon.png', 180, { radiusRatio: 0, checkScale: 0.6 });
+// Onglet du navigateur : la coche doit rester lisible à 32 px.
+generate('favicon-32.png', 32, { radiusRatio: 0, checkScale: 0.7 });
+generate('favicon-192.png', 192, { radiusRatio: 0, checkScale: 0.66 });

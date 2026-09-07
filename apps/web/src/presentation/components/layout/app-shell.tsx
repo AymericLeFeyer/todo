@@ -90,11 +90,31 @@ export function AppShell({ title, subtitle, actions, newTaskQuery, children }: A
         <Plus className="size-7" strokeWidth={2.5} />
       </button>
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden">
-        <div className="flex">
-          {NAV_ITEMS.map((item) => (
-            <TabLink key={item.to} item={item} badge={stats?.badge ?? 0} />
-          ))}
+      {/*
+        Barre d'onglets en verre : une capsule détachée des bords, très
+        translucide, que le contenu traverse en défilant. L'effet tient à trois
+        couches — le flou saturé qui reprend les couleurs de ce qui passe
+        dessous, le reflet clair sur l'arête supérieure, et l'ombre portée qui
+        décolle la barre du fond.
+
+        `pointer-events-none` sur le conteneur laisse les marges cliquables :
+        seule la capsule intercepte les gestes.
+      */}
+      <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 md:hidden">
+        <div
+          className={cn(
+            'pointer-events-auto isolate mx-3 mb-[calc(env(safe-area-inset-bottom)+0.5rem)]',
+            'overflow-hidden rounded-[26px]',
+            'border border-black/[0.06] dark:border-white/[0.14]',
+            'bg-background/55 backdrop-blur-2xl backdrop-saturate-150',
+            'shadow-[0_8px_32px_-6px_rgb(0_0_0/0.28)] dark:shadow-[0_12px_40px_-8px_rgb(0_0_0/0.65)]',
+          )}
+        >
+          <div className="flex bg-gradient-to-b from-white/40 to-transparent dark:from-white/[0.08]">
+            {NAV_ITEMS.map((item) => (
+              <TabLink key={item.to} item={item} badge={stats?.badge ?? 0} />
+            ))}
+          </div>
         </div>
       </nav>
     </div>
@@ -138,15 +158,24 @@ function TabLink({ item, badge }: { item: NavItem; badge: number }) {
         )
       }
     >
-      <span className="relative">
-        <Icon className="size-5" />
-        {item.withBadge && badge > 0 && (
-          <span className="absolute -right-2.5 -top-1.5 min-w-4 rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
-            {badge}
+      {({ isActive }) => (
+        <>
+          {/* Pastille de verre plus claire sous l'onglet actif, plutôt qu'un
+              aplat opaque : la barre garde sa transparence d'ensemble. */}
+          {isActive && (
+            <span className="absolute inset-x-1.5 inset-y-1 rounded-[18px] bg-primary/12 ring-1 ring-inset ring-primary/20" />
+          )}
+          <span className="relative">
+            <Icon className="size-5" />
+            {item.withBadge && badge > 0 && (
+              <span className="absolute -right-2.5 -top-1.5 min-w-4 rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+                {badge}
+              </span>
+            )}
           </span>
-        )}
-      </span>
-      {item.label}
+          <span className="relative">{item.label}</span>
+        </>
+      )}
     </NavLink>
   );
 }
