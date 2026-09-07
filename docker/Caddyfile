@@ -1,0 +1,18 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$TODO_DOMAIN} {
+	# Défi DNS-01 : aucun port entrant nécessaire depuis Internet.
+	tls {
+		dns cloudflare {$CLOUDFLARE_API_TOKEN}
+	}
+
+	encode zstd gzip
+	reverse_proxy todo:3000
+
+	# Le service worker ne doit jamais être servi depuis un cache HTTP, sinon
+	# une mise à jour de la PWA peut rester bloquée plusieurs jours.
+	@sw path /sw.js /registerSW.js
+	header @sw Cache-Control "no-cache"
+}

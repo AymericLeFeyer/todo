@@ -1,0 +1,63 @@
+services:
+  todo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: todo:latest
+    container_name: todo
+    restart: unless-stopped
+    # Sans reverse proxy TLS, publier sur le réseau du homelab. Avec le profil
+    # `tls`, ce port peut être retiré : seul Caddy a besoin de joindre l'app.
+    ports:
+      - '${TODO_PORT:-3000}:3000'
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:?definir SESSION_SECRET dans le .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:todo@localhost}
+      DAILY_DIGEST_CRON: ${DAILY_DIGEST_CRON:-0 7 * * *}
+    volumes:
+      - todo-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Profil optionnel : termine le TLS avec un certificat Let's Encrypt obtenu
+  # par défi DNS, donc sans exposer le service sur Internet. Indispensable pour
+  # installer la PWA sur iPhone et recevoir les notifications.
+  caddy:
+    profiles: ['tls']
+    build:
+      context: docker
+      dockerfile: caddy.Dockerfile
+    container_name: todo-caddy
+    restart: unless-stopped
+    ports:
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      TODO_DOMAIN: ${TODO_DOMAIN:?definir TODO_DOMAIN dans le .env}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - todo
+
+volumes:
+  todo-data:
+  caddy-data:
+  caddy-config:

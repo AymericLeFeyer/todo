@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "vapid": "tsx src/scripts/generate-vapid.ts"
+    "vapid": "tsx src/scripts/generate-vapid.ts",
+    "backup": "tsx src/scripts/backup.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
