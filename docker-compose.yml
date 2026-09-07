@@ -1,9 +1,12 @@
 services:
   todo:
+    # Construction locale. Pour déployer depuis l'image publiée par la CI,
+    # utiliser docker-compose.portainer.yml (ou remplacer `build` par
+    # `image: ghcr.io/aymericlefeyer/todo:latest`).
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: todo:latest
+    image: ghcr.io/aymericlefeyer/todo:latest
     container_name: todo
     restart: unless-stopped
     # Sans reverse proxy TLS, publier sur le réseau du homelab. Avec le profil

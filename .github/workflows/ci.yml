@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
 
 concurrency:
@@ -26,17 +27,52 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-  docker:
-    name: Build image
+  image:
+    name: Image Docker
     runs-on: ubuntu-latest
     needs: quality
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v5
+
+      # Émulation nécessaire à l'étape arm64 qui compile better-sqlite3 ; le
+      # reste du build tourne sur l'architecture native du runner.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - uses: docker/setup-buildx-action@v3
+
+      # Sur une pull request, on se contente de vérifier que l'image se
+      # construit : rien n'est publié.
+      - name: Connexion à GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Étiquettes de l'image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # metadata-action met le nom du dépôt en minuscules, ce qu'exige GHCR.
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          push: false
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

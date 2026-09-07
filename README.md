@@ -34,12 +34,44 @@ En développement, `AUTH_DISABLED=true` évite d'avoir à se connecter.
 
 ## Déploiement sur le homelab
 
+Chaque push sur `main` publie l'image sur GHCR, en `linux/amd64` et
+`linux/arm64` :
+
+```
+ghcr.io/aymericlefeyer/todo:latest
+ghcr.io/aymericlefeyer/todo:sha-<court>   # version figée d'un commit
+```
+
+### Portainer
+
+1. **Rendre le package accessible.** Sur GitHub, `Packages → todo → Package
+settings`, passer la visibilité en _public_ — ou, pour le garder privé,
+   déclarer `ghcr.io` dans _Portainer → Registries_ avec un jeton
+   d'accès personnel ayant la portée `read:packages`.
+2. **Stacks → Add stack → Web editor**, coller le contenu de
+   [`docker-compose.portainer.yml`](docker-compose.portainer.yml).
+3. Renseigner les variables dans **Environment variables** :
+
+   | Variable                                 | Valeur                                     |
+   | ---------------------------------------- | ------------------------------------------ |
+   | `SESSION_SECRET`                         | **obligatoire**, `openssl rand -base64 32` |
+   | `APP_PASSWORD`                           | mot de passe de l'interface web            |
+   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | `npm run vapid -w @todo/api`               |
+   | `TODO_PORT`                              | port publié, `3000` par défaut             |
+   | `TZ`                                     | `Europe/Paris`                             |
+
+4. **Deploy the stack.** Cocher _Automatic updates_ (ou brancher un webhook)
+   pour récupérer les images suivantes.
+
+### En ligne de commande
+
 ```bash
 cp .env.example .env
 # SESSION_SECRET : openssl rand -base64 32
 # APP_PASSWORD   : mot de passe de l'interface web
 # VAPID_*        : npm run vapid -w @todo/api
-docker compose up -d --build
+docker compose up -d --build          # construction locale
+docker compose -f docker-compose.portainer.yml up -d   # depuis l'image GHCR
 ```
 
 La base vit dans le volume `todo-data` (`/data/todo.db`). L'API sert aussi la

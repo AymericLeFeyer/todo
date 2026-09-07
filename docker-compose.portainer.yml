@@ -1,0 +1,48 @@
+# Stack prête à coller dans Portainer (Stacks → Add stack → Web editor).
+#
+# Contrairement à `docker-compose.yml`, elle ne construit rien : elle tire
+# l'image publiée sur GHCR par la CI. Portainer n'a pas le dépôt sous la main,
+# il ne pourrait pas la construire.
+#
+# Renseigner les variables dans le panneau « Environment variables » de
+# Portainer. SESSION_SECRET est obligatoire ; sans APP_PASSWORD, l'instance est
+# ouverte à tout ce qui peut la joindre sur le réseau.
+
+services:
+  todo:
+    image: ghcr.io/aymericlefeyer/todo:latest
+    container_name: todo
+    restart: unless-stopped
+    ports:
+      - '${TODO_PORT:-3000}:3000'
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Mot de passe de l'interface web. Vide = aucune authentification.
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      # openssl rand -base64 32
+      SESSION_SECRET: ${SESSION_SECRET:?definir SESSION_SECRET dans les variables de la stack}
+      # Origines autorisées pour les intégrations servies depuis un autre nom.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # npm run vapid -w @todo/api — sans ces clés, pas de notifications ni de
+      # pastille iOS en arrière-plan.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:todo@localhost}
+      # Heure du résumé quotidien qui rafraîchit la pastille de l'icône.
+      DAILY_DIGEST_CRON: ${DAILY_DIGEST_CRON:-0 7 * * *}
+    volumes:
+      - todo-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  todo-data:

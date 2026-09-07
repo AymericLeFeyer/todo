@@ -12,7 +12,9 @@ API REST filtrable par tags consommée par AyLabs.
 - `apps/api` — Fastify 5, better-sqlite3 13, web-push, node-cron
 - `apps/web` — React 19, Vite 8, Tailwind 4, **shadcn/ui** (choix figé), TanStack Query 5, dnd-kit
 - Tests : Vitest 5 (`--project core`, `--project api`)
-- CI : GitHub Actions (lint, format, typecheck, tests, build image)
+- CI : GitHub Actions (lint, format, typecheck, tests) puis publication de
+  l'image sur `ghcr.io/aymericlefeyer/todo` en amd64 + arm64 à chaque push sur
+  `main` ; une pull request construit l'image sans la publier
 
 ## Structure
 
@@ -161,7 +163,15 @@ Routes publiques (sans authentification) : `/api/health`, `/api/auth/login`,
   (`FST_ERR_CTP_EMPTY_JSON_BODY`). Une intégration qui envoie le header par
   défaut sur `DELETE /api/tasks/:id` tombera dessus ; le client web ne pose
   l'en-tête que lorsqu'il y a effectivement un corps.
-- **better-sqlite3** est natif : l'image Docker part de `node:24-slim` (Debian)
-  pour profiter des binaires précompilés glibc, et non d'Alpine.
+- **better-sqlite3** est natif et sans binaire précompilé pour l'ABI de
+  l'image : node-gyp compile, donc `python3 make g++` sont installés dans les
+  étapes d'installation du Dockerfile (jamais dans l'image finale).
+- **Build multi-architecture** : les étapes de compilation TypeScript tournent
+  sur `$BUILDPLATFORM` (JavaScript portable, pleine vitesse) et seule
+  l'installation des dépendances de production est émulée pour l'arm64. Fusionner
+  ces étapes ferait passer un build ARM de quelques minutes à une demi-heure.
+- **Deux fichiers compose** : `docker-compose.yml` construit localement,
+  `docker-compose.portainer.yml` tire l'image GHCR (Portainer n'a pas le dépôt
+  et ne peut rien construire).
 - **`@todo/core` doit être compilé** (`npm run build -w @todo/core`) avant le
   typecheck de l'API ; la PWA, elle, pointe sur les sources via un alias Vite.
