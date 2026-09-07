@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { BadgeSync } from '@/application/push/use-badge-sync';
 import { AuthGate } from '@/presentation/components/layout/auth-gate';
 import { InboxPage } from '@/presentation/pages/inbox-page';
 import { NewTaskPage } from '@/presentation/pages/new-task-page';
+import { SettingsPage } from '@/presentation/pages/settings-page';
 import { TagTasksPage, TagsPage } from '@/presentation/pages/tags-page';
 import { TaskDetailPage } from '@/presentation/pages/task-detail-page';
 import { TodayPage } from '@/presentation/pages/today-page';
@@ -26,6 +28,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthGate>
+          <BadgeSync />
           <Routes>
             <Route path="/" element={<Navigate to="/today" replace />} />
             <Route path="/today" element={<TodayPage />} />
@@ -33,6 +36,7 @@ export function App() {
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/tags/:slug" element={<TagTasksPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/new" element={<NewTaskPage />} />
             <Route path="/task/:id" element={<TaskDetailPage />} />
             <Route path="*" element={<Navigate to="/today" replace />} />

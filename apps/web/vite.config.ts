@@ -18,7 +18,7 @@ export default defineConfig({
       manifest: {
         name: 'Todo',
         short_name: 'Todo',
-        description: 'Gestionnaire de taches local',
+        description: 'Gestionnaire de tâches local',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
