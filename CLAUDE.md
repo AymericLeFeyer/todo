@@ -156,6 +156,11 @@ Routes publiques (sans authentification) : `/api/health`, `/api/auth/login`,
 - **Le heredoc bash convertit `\uXXXX`.** Pour écrire une séquence unicode
   échappée dans un fichier (regex de normalisation des accents), passer par
   `Write` ou construire la chaîne autrement.
+- **`DELETE` sans corps** : Fastify rejette en `400` toute requête portant
+  `Content-Type: application/json` avec un corps vide
+  (`FST_ERR_CTP_EMPTY_JSON_BODY`). Une intégration qui envoie le header par
+  défaut sur `DELETE /api/tasks/:id` tombera dessus ; le client web ne pose
+  l'en-tête que lorsqu'il y a effectivement un corps.
 - **better-sqlite3** est natif : l'image Docker part de `node:24-slim` (Debian)
   pour profiter des binaires précompilés glibc, et non d'Alpine.
 - **`@todo/core` doit être compilé** (`npm run build -w @todo/core`) avant le
