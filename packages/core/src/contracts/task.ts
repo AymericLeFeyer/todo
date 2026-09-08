@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isDateOnly } from '../domain/task/entities/due-date.js';
 import { TASK_DURATIONS } from '../domain/task/entities/duration.js';
+import { TASK_RECURRENCES } from '../domain/task/entities/recurrence.js';
 
 /**
  * Contrat partagé entre l'API et ses clients (PWA et intégrations comme
@@ -18,11 +19,20 @@ export const durationSchema = z.union([
   z.literal(TASK_DURATIONS[2]),
 ]);
 
+export const recurrenceSchema = z.enum(TASK_RECURRENCES);
+
+/** Horodatage ISO complet, utilisé pour filtrer sur la date de complétion. */
+export const isoDateTimeSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), { message: 'Horodatage ISO attendu' });
+
 export const createTaskSchema = z.object({
   title: z.string().trim().min(1, 'Le titre est obligatoire').max(500),
   notes: z.string().max(10_000).nullish(),
   dueDate: dateOnlySchema.nullish(),
   duration: durationSchema.nullish(),
+  /** Répétition : terminer la tâche engendre l'occurrence suivante. Exige une échéance. */
+  recurrence: recurrenceSchema.nullish(),
   /** Noms ou slugs de tags ; les tags inconnus sont créés à la volée. */
   tags: z.array(z.string().trim().min(1).max(48)).max(20).optional(),
   /** Clé d'idempotence fournie par l'appelant externe. */
@@ -57,6 +67,8 @@ export const listTasksQuerySchema = z.object({
   /** `true` pour ne renvoyer que les tâches sans échéance (Inbox). */
   noDate: z.coerce.boolean().optional(),
   search: z.string().trim().min(1).max(200).optional(),
+  /** Ne renvoyer que les tâches terminées depuis cet instant (vue « fait aujourd'hui »). */
+  completedFrom: isoDateTimeSchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(200),
   offset: z.coerce.number().int().min(0).default(0),
 });

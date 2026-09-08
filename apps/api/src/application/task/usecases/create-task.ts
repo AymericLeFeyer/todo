@@ -30,6 +30,8 @@ export class CreateTask {
       notes: input.notes ?? null,
       dueDate,
       duration: input.duration ?? null,
+      recurrence: input.recurrence ?? null,
+      recurrenceParentId: null,
       // Une nouvelle tâche se pose en fin de journée, comme dans Todoist.
       position: nextPosition(this.tasks.listByDueDate(dueDate)),
       source,

@@ -51,6 +51,7 @@ export class ListTasks {
       to: query.to,
       noDate: query.noDate,
       search: query.search,
+      completedFrom: query.completedFrom,
       limit: query.limit,
       offset: query.offset,
     });

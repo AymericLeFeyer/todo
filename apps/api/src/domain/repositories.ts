@@ -1,4 +1,4 @@
-import type { DateOnly, Tag, Task, TaskDuration, TaskSource } from '@todo/core';
+import type { DateOnly, Tag, Task, TaskDuration, TaskRecurrence, TaskSource } from '@todo/core';
 
 /** Critères de recherche acceptés par `GET /api/tasks`. */
 export interface TaskFilters {
@@ -10,6 +10,8 @@ export interface TaskFilters {
   /** Ne renvoyer que les tâches sans échéance (Inbox). */
   noDate?: boolean;
   search?: string;
+  /** Horodatage ISO : ne garder que les tâches terminées depuis cet instant. */
+  completedFrom?: string;
   limit: number;
   offset: number;
 }
@@ -21,6 +23,8 @@ export interface NewTask {
   dueDate: DateOnly | null;
   duration: TaskDuration | null;
   position: number;
+  recurrence: TaskRecurrence | null;
+  recurrenceParentId: string | null;
   source: TaskSource;
   externalId: string | null;
   tagIds: string[];
@@ -33,6 +37,7 @@ export interface TaskPatch {
   dueDate?: DateOnly | null;
   duration?: TaskDuration | null;
   position?: number;
+  recurrence?: TaskRecurrence | null;
   completed?: boolean;
   tagIds?: string[];
 }
@@ -54,6 +59,8 @@ export interface TaskRepository {
   list(filters: TaskFilters): Task[];
   /** Tâches non terminées d'une journée, triées par position. Sert au calcul des rangs. */
   listByDueDate(dueDate: DateOnly | null): Task[];
+  /** Occurrence engendrée par la tâche donnée, s'il y en a une. */
+  findByRecurrenceParent(parentId: string): Task | null;
   create(task: NewTask): Task;
   update(id: string, patch: TaskPatch): Task | null;
   delete(id: string): boolean;

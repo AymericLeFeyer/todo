@@ -27,6 +27,17 @@ async function createTask(body: Record<string, unknown>): Promise<Task> {
   return response.json<Task>();
 }
 
+/** Demain, au format `YYYY-MM-DD` local. */
+function tomorrowDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 async function listTasks(query = ''): Promise<Task[]> {
   const response = await app.inject({ method: 'GET', url: `/api/tasks${query}` });
   expect(response.statusCode).toBe(200);
@@ -184,6 +195,96 @@ describe("cycle de vie d'une tâche", () => {
     const missing = await app.inject({ method: 'GET', url: `/api/tasks/${task.id}` });
     expect(missing.statusCode).toBe(404);
     expect(missing.json().error).toBe('not_found');
+  });
+});
+
+describe('tâches répétées', () => {
+  const complete = (id: string) => app.inject({ method: 'POST', url: `/api/tasks/${id}/complete` });
+
+  it("engendre l'occurrence suivante quand on termine la tâche", async () => {
+    const task = await createTask({
+      title: 'Arroser les plantes',
+      dueDate: '2026-09-08',
+      duration: 15,
+      recurrence: 'weekly',
+      tags: ['maison'],
+    });
+
+    const done = (await complete(task.id)).json<Task>();
+    expect(done.completedAt).not.toBeNull();
+
+    const open = await listTasks('?status=open');
+    expect(open).toHaveLength(1);
+    expect(open[0]).toMatchObject({
+      title: 'Arroser les plantes',
+      dueDate: '2026-09-15',
+      duration: 15,
+      recurrence: 'weekly',
+      recurrenceParentId: task.id,
+    });
+    expect(open[0]?.tags.map((tag) => tag.slug)).toEqual(['maison']);
+  });
+
+  it('rattrape le retard plutôt que de reprogrammer dans le passé', async () => {
+    const task = await createTask({
+      title: 'Sport',
+      dueDate: '2020-01-01',
+      recurrence: 'daily',
+    });
+
+    await complete(task.id);
+    const [next] = await listTasks('?status=open');
+    expect(next?.dueDate).toBe(tomorrowDate());
+  });
+
+  it("retire l'occurrence engendrée si l'on rouvre la tâche cochée par erreur", async () => {
+    const task = await createTask({
+      title: 'Facture',
+      dueDate: '2026-09-08',
+      recurrence: 'monthly',
+    });
+
+    await complete(task.id);
+    expect(await listTasks('?status=open')).toHaveLength(1);
+
+    await app.inject({ method: 'POST', url: `/api/tasks/${task.id}/uncomplete` });
+    const open = await listTasks('?status=open');
+    expect(open).toHaveLength(1);
+    expect(open[0]?.id).toBe(task.id);
+  });
+
+  it("ne produit qu'une occurrence même si l'on termine deux fois", async () => {
+    const task = await createTask({
+      title: 'Poubelles',
+      dueDate: '2026-09-08',
+      recurrence: 'weekly',
+    });
+
+    await complete(task.id);
+    await complete(task.id);
+
+    expect(await listTasks('?status=open')).toHaveLength(1);
+  });
+
+  it('ne reproduit pas une tâche répétée restée sans échéance', async () => {
+    const task = await createTask({ title: 'Un jour peut-être', recurrence: 'daily' });
+
+    await complete(task.id);
+
+    expect(await listTasks('?status=open')).toHaveLength(0);
+  });
+});
+
+describe('GET /api/tasks?completedFrom', () => {
+  it('ne renvoie que ce qui a été terminé depuis la borne', async () => {
+    const task = await createTask({ title: 'Rangement', dueDate: '2026-09-08' });
+    await app.inject({ method: 'POST', url: `/api/tasks/${task.id}/complete` });
+
+    const since = new Date(Date.now() - 60_000).toISOString();
+    const later = new Date(Date.now() + 60_000).toISOString();
+
+    expect(await listTasks(`?status=done&completedFrom=${since}`)).toHaveLength(1);
+    expect(await listTasks(`?status=done&completedFrom=${later}`)).toHaveLength(0);
   });
 });
 

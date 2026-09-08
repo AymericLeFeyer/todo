@@ -16,6 +16,8 @@ export interface TaskQuery {
   to?: DateOnly;
   noDate?: boolean;
   search?: string;
+  /** Horodatage ISO : ne garder que les tâches terminées depuis cet instant. */
+  completedFrom?: string;
   limit?: number;
 }
 
@@ -29,6 +31,7 @@ export const taskApi = {
       to: query.to,
       noDate: query.noDate,
       search: query.search,
+      completedFrom: query.completedFrom,
       limit: query.limit,
     })}`;
     return http.get<{ tasks: Task[] }>(path, signal).then((payload) => payload.tasks);

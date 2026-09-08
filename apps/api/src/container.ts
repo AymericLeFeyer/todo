@@ -7,6 +7,7 @@ import {
   SqlitePushSubscriptionRepository,
 } from './infrastructure/repositories/sqlite-push-repository.js';
 import { NoopPushSender, WebPushSender } from './infrastructure/push/web-push-sender.js';
+import { RecurrenceScheduler } from './application/task/recurrence-scheduler.js';
 import { CreateTask } from './application/task/usecases/create-task.js';
 import {
   DeleteTask,
@@ -71,6 +72,7 @@ export function createContainer(
   const apiKeys = new SqliteApiKeyRepository(db);
 
   const sender: PushSender = config.vapid ? new WebPushSender(config.vapid) : new NoopPushSender();
+  const recurrences = new RecurrenceScheduler(tasks);
   const todayStats = new GetTodayStats(tasks);
   const notifier = new PushNotifier(push, sender, todayStats);
 
@@ -82,8 +84,8 @@ export function createContainer(
     notifier,
     useCases: {
       createTask: new CreateTask(tasks, tags),
-      updateTask: new UpdateTask(tasks, tags),
-      setTaskCompletion: new SetTaskCompletion(tasks),
+      updateTask: new UpdateTask(tasks, tags, recurrences),
+      setTaskCompletion: new SetTaskCompletion(tasks, recurrences),
       deleteTask: new DeleteTask(tasks),
       listTasks: new ListTasks(tasks),
       moveTasks: new MoveTasks(tasks),

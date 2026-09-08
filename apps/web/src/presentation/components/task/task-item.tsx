@@ -1,7 +1,14 @@
-import { formatDuration, fromDateOnly, isOverdue, today, type Task } from '@todo/core';
+import {
+  formatDuration,
+  fromDateOnly,
+  isOverdue,
+  recurrenceShortLabel,
+  today,
+  type Task,
+} from '@todo/core';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Check, Clock } from 'lucide-react';
+import { Check, Clock, Repeat } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 export interface TaskItemProps {
@@ -72,7 +79,10 @@ export function TaskItem({
           {task.title}
         </p>
 
-        {(task.duration !== null || task.tags.length > 0 || (showDate && task.dueDate)) && (
+        {(task.duration !== null ||
+          task.recurrence !== null ||
+          task.tags.length > 0 ||
+          (showDate && task.dueDate)) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {showDate && task.dueDate && (
               <span className={cn(late && 'font-medium text-destructive')}>
@@ -83,6 +93,12 @@ export function TaskItem({
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3" />
                 {formatDuration(task.duration)}
+              </span>
+            )}
+            {task.recurrence !== null && (
+              <span className="inline-flex items-center gap-1">
+                <Repeat className="size-3" />
+                {recurrenceShortLabel(task.recurrence)}
               </span>
             )}
             {task.tags.map((tag) => (

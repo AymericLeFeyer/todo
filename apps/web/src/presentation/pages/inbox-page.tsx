@@ -13,17 +13,19 @@ export function InboxPage() {
   const toggle = useToggleTask();
   const { data: tasks, isPending } = useTasks({ status: 'open', noDate: true });
 
+  // Cocher une tâche la retire de l'Inbox sur-le-champ : la liste ne montre
+  // que ce qui reste à planifier. La tâche cochée par erreur se retrouve dans
+  // « Terminées aujourd'hui », sur l'écran du jour, où elle se rouvre.
+  const open = (tasks ?? []).filter((task) => task.completedAt === null);
+
   const handleToggle = (task: Task) =>
     toggle.mutate({ id: task.id, completed: task.completedAt === null });
 
   return (
-    <AppShell
-      title="Inbox"
-      subtitle={tasks && tasks.length > 0 ? `${tasks.length} sans date` : undefined}
-    >
+    <AppShell title="Inbox" subtitle={open.length > 0 ? `${open.length} sans date` : undefined}>
       {isPending ? (
         <TaskListSkeleton rows={3} />
-      ) : (tasks?.length ?? 0) === 0 ? (
+      ) : open.length === 0 ? (
         <EmptyState
           icon={<Inbox className="size-10" strokeWidth={1.25} />}
           title="Inbox vide"
@@ -31,7 +33,7 @@ export function InboxPage() {
         />
       ) : (
         <div className="space-y-1">
-          {tasks?.map((task) => (
+          {open.map((task) => (
             <TaskItem
               key={task.id}
               task={task}

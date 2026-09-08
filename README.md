@@ -153,19 +153,23 @@ curl "$BASE/api/tasks?tags=aylabs&status=open" -H "X-API-Key: $KEY"
 curl "$BASE/api/stats/today" -H "X-API-Key: $KEY"
 ```
 
+`recurrence` vaut `daily`, `weekly`, `monthly`, `yearly` ou `null`, et exige une
+`dueDate` : terminer une occurrence en crée une nouvelle à l'échéance suivante
+(la rouvrir supprime celle qui venait d'être engendrée).
+
 `externalId` rend la création **idempotente** : rejouer le même appel renvoie la
 tâche existante avec un `200` au lieu d'un `201`, sans créer de doublon.
 
-| Méthode                | Route                                          | Rôle                                                                                                         |
-| ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET`                  | `/api/tasks`                                   | Liste filtrable : `tags`, `tagsMode=all\|any`, `status`, `from`, `to`, `noDate`, `search`, `limit`, `offset` |
-| `POST`                 | `/api/tasks`                                   | Création (`title`, `dueDate`, `duration`, `tags`, `notes`, `externalId`)                                     |
-| `GET`/`PATCH`/`DELETE` | `/api/tasks/:id`                               | Détail, mise à jour partielle, suppression                                                                   |
-| `POST`                 | `/api/tasks/:id/complete` · `/uncomplete`      | Bascule de statut                                                                                            |
-| `POST`                 | `/api/tasks/reorder`                           | Déplacements en lot (glisser-déposer)                                                                        |
-| `GET`/`POST`           | `/api/tags` · `PATCH`/`DELETE` `/api/tags/:id` | Gestion des tags                                                                                             |
-| `GET`                  | `/api/stats/today`                             | `{ overdue, today, badge }`                                                                                  |
-| `GET`                  | `/api/health`                                  | Sonde de disponibilité                                                                                       |
+| Méthode                | Route                                          | Rôle                                                                                                                          |
+| ---------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GET`                  | `/api/tasks`                                   | Liste filtrable : `tags`, `tagsMode=all\|any`, `status`, `from`, `to`, `noDate`, `search`, `completedFrom`, `limit`, `offset` |
+| `POST`                 | `/api/tasks`                                   | Création (`title`, `dueDate`, `duration`, `recurrence`, `tags`, `notes`, `externalId`)                                        |
+| `GET`/`PATCH`/`DELETE` | `/api/tasks/:id`                               | Détail, mise à jour partielle, suppression                                                                                    |
+| `POST`                 | `/api/tasks/:id/complete` · `/uncomplete`      | Bascule de statut ; terminer une tâche répétée engendre l'occurrence suivante                                                 |
+| `POST`                 | `/api/tasks/reorder`                           | Déplacements en lot (glisser-déposer)                                                                                         |
+| `GET`/`POST`           | `/api/tags` · `PATCH`/`DELETE` `/api/tags/:id` | Gestion des tags                                                                                                              |
+| `GET`                  | `/api/stats/today`                             | `{ overdue, today, badge }`                                                                                                   |
+| `GET`                  | `/api/health`                                  | Sonde de disponibilité                                                                                                        |
 
 Les tags sont résolus par slug (`Montage Vidéo` → `montage-video`) et **créés à
 la volée** s'ils n'existent pas : une intégration n'a pas à les déclarer.

@@ -64,4 +64,31 @@ describe('quickParse', () => {
     expect(result.matches.map((m) => m.type)).toEqual(['date', 'tag']);
     expect(result.matches.map((m) => m.text)).toEqual(['demain', '#aylabs']);
   });
+  it('reconnaît les répétitions et les sort du titre', () => {
+    expect(quickParse('Arroser les plantes chaque jour', NOW)).toMatchObject({
+      title: 'Arroser les plantes',
+      recurrence: 'daily',
+      // Une répétition sans échéance démarre aujourd'hui.
+      dueDate: '2026-09-07',
+    });
+    expect(quickParse('Facture tous les mois', NOW).recurrence).toBe('monthly');
+    expect(quickParse('Anniversaire chaque année', NOW).recurrence).toBe('yearly');
+    expect(quickParse('Sport toutes les semaines', NOW).recurrence).toBe('weekly');
+  });
+
+  it('cale « tous les <jour> » sur la prochaine occurrence du jour', () => {
+    const result = quickParse('Poubelles tous les mardis', NOW);
+    expect(result).toMatchObject({
+      title: 'Poubelles',
+      recurrence: 'weekly',
+      dueDate: '2026-09-08',
+    });
+  });
+
+  it('laisse une date explicite primer sur le démarrage par défaut', () => {
+    const result = quickParse('Bilan chaque mois demain', NOW);
+    expect(result.recurrence).toBe('monthly');
+    expect(result.dueDate).toBe('2026-09-08');
+    expect(result.title).toBe('Bilan');
+  });
 });

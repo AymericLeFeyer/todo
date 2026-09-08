@@ -3,6 +3,7 @@ export * from './domain/shared/errors.js';
 
 export * from './domain/task/entities/due-date.js';
 export * from './domain/task/entities/duration.js';
+export * from './domain/task/entities/recurrence.js';
 export * from './domain/task/entities/task.js';
 export * from './domain/task/services/position.js';
 export * from './domain/task/services/quick-parse.js';

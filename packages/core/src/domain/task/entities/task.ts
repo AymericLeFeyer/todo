@@ -1,5 +1,6 @@
-import type { DateOnly } from './due-date.js';
+import { toDateOnly, type DateOnly } from './due-date.js';
 import type { TaskDuration } from './duration.js';
+import type { TaskRecurrence } from './recurrence.js';
 import type { Tag } from '../../tag/entities/tag.js';
 
 export const TASK_SOURCES = ['app', 'api'] as const;
@@ -15,6 +16,10 @@ export interface Task {
   /** Rang fractionnaire au sein d'un même jour (cf. services/position). */
   position: number;
   completedAt: string | null;
+  /** `null` = tâche ponctuelle. Sinon, terminer la tâche engendre l'occurrence suivante. */
+  recurrence: TaskRecurrence | null;
+  /** Occurrence dont cette tâche est née ; permet d'annuler la génération si l'on rouvre le parent. */
+  recurrenceParentId: string | null;
   source: TaskSource;
   /** Identifiant côté appelant (AyLabs) : garantit l'idempotence des imports. */
   externalId: string | null;
@@ -25,6 +30,11 @@ export interface Task {
 
 export function isCompleted(task: Task): boolean {
   return task.completedAt !== null;
+}
+
+/** Terminée ce jour-là, dans le fuseau local du lecteur. */
+export function isCompletedOn(task: Task, date: DateOnly): boolean {
+  return task.completedAt !== null && toDateOnly(new Date(task.completedAt)) === date;
 }
 
 export function isOverdue(task: Task, todayDate: DateOnly): boolean {

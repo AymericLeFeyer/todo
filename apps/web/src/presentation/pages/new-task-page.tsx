@@ -3,8 +3,10 @@ import {
   quickParse,
   relativeDayLabel,
   slugifyTag,
+  today,
   type DateOnly,
   type TaskDuration,
+  type TaskRecurrence,
 } from '@todo/core';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -15,18 +17,20 @@ import { toast } from 'sonner';
 import { useCreateTask } from '@/application/task/task-queries';
 import { DueDateChips } from '@/presentation/components/task/due-date-chips';
 import { DurationChips } from '@/presentation/components/task/duration-chips';
+import { RecurrenceChips } from '@/presentation/components/task/recurrence-chips';
 import { TagPicker } from '@/presentation/components/task/tag-picker';
 import { Button } from '@/presentation/components/ui/button';
 import { Textarea } from '@/presentation/components/ui/textarea';
 import { useKeyboardInset } from '@/presentation/hooks/use-keyboard-inset';
+import { useAutoFocus } from '@/presentation/hooks/use-new-task';
 
 /**
  * Écran d'ajout plein écran.
  *
  * Le parti pris : une seule zone de frappe, et tout ce qui peut être déduit du
- * texte l'est (« demain 30min #aylabs »). Les trois rangées de puces montrent
- * en direct ce qui a été compris et restent modifiables au pouce — un choix
- * manuel prend toujours le pas sur la détection.
+ * texte l'est (« demain 30min #aylabs », « chaque lundi »). Les rangées de
+ * puces montrent en direct ce qui a été compris et restent modifiables au
+ * pouce — un choix manuel prend toujours le pas sur la détection.
  */
 export function NewTaskPage() {
   const navigate = useNavigate();
@@ -36,6 +40,8 @@ export function NewTaskPage() {
 
   // Le clavier masquerait sinon les puces de date, de durée et de tags.
   useKeyboardInset();
+  // Reprend le clavier déjà levé par le bouton « + » (cf. use-new-task).
+  useAutoFocus(inputRef);
 
   const [raw, setRaw] = useState('');
   const [notes, setNotes] = useState('');
@@ -46,6 +52,9 @@ export function NewTaskPage() {
     parseInitialDate(searchParams.get('date')),
   );
   const [manualDuration, setManualDuration] = useState<TaskDuration | null | undefined>(undefined);
+  const [manualRecurrence, setManualRecurrence] = useState<TaskRecurrence | null | undefined>(
+    undefined,
+  );
   const [manualTags, setManualTags] = useState<string[] | undefined>(
     parseInitialTags(searchParams.get('tag')),
   );
@@ -54,8 +63,21 @@ export function NewTaskPage() {
 
   const dueDate = manualDate !== undefined ? manualDate : parsed.dueDate;
   const duration = manualDuration !== undefined ? manualDuration : parsed.duration;
+  const recurrence = manualRecurrence !== undefined ? manualRecurrence : parsed.recurrence;
   const tags = manualTags ?? parsed.tagNames.map(slugifyTag);
   const detected = manualDate === undefined && parsed.matches.length > 0;
+
+  // Une répétition a besoin d'un point de départ : sans échéance choisie, la
+  // première occurrence part d'aujourd'hui, sinon la tâche dormirait dans
+  // l'Inbox sans jamais se reproduire.
+  const effectiveDueDate = recurrence !== null && dueDate === null ? today() : dueDate;
+
+  // Retirer l'échéance retire la répétition : elle n'aurait plus d'ancre, et
+  // la puce « Sans date » resterait sinon inactivable.
+  const changeDate = (value: DateOnly | null) => {
+    setManualDate(value);
+    if (value === null) setManualRecurrence(null);
+  };
 
   const title = parsed.title.trim();
   const canSubmit = title.length > 0 && !create.isPending;
@@ -67,8 +89,9 @@ export function NewTaskPage() {
     create.mutate(
       {
         title,
-        dueDate,
+        dueDate: effectiveDueDate,
         duration,
+        recurrence,
         tags: tags.length > 0 ? tags : undefined,
         notes: notes.trim() || undefined,
       },
@@ -89,8 +112,9 @@ export function NewTaskPage() {
             // enchaîner une série de tâches sans tout re-choisir.
             setRaw('');
             setNotes('');
-            setManualDate(dueDate);
+            setManualDate(effectiveDueDate);
             setManualDuration(duration);
+            setManualRecurrence(recurrence);
             setManualTags(tags);
             inputRef.current?.focus();
           } else {
@@ -129,7 +153,6 @@ export function NewTaskPage() {
       <div className="flex-1 px-4 pt-2" style={{ paddingBottom: 'var(--keyboard-inset, 0px)' }}>
         <Textarea
           ref={inputRef}
-          autoFocus
           rows={3}
           value={raw}
           onChange={(event) => setRaw(event.target.value)}
@@ -171,8 +194,13 @@ export function NewTaskPage() {
         className="safe-bottom sticky bottom-0 space-y-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur transition-transform duration-150"
         style={{ transform: 'translateY(calc(-1 * var(--keyboard-inset, 0px)))' }}
       >
-        <DueDateChips value={dueDate} onChange={setManualDate} />
+        <DueDateChips value={effectiveDueDate} onChange={changeDate} />
         <DurationChips value={duration} onChange={setManualDuration} />
+        {/* La répétition s'ancre sur une échéance : sans date, la rangée
+            n'aurait rien à faire répéter et mangerait la place du clavier. */}
+        {effectiveDueDate !== null && (
+          <RecurrenceChips value={recurrence} onChange={setManualRecurrence} />
+        )}
         <div className="flex items-end gap-2">
           <div className="min-w-0 flex-1">
             <TagPicker value={tags} onChange={setManualTags} />

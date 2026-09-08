@@ -4,6 +4,7 @@ import {
   type Tag,
   type Task,
   type TaskDuration,
+  type TaskRecurrence,
   type TaskSource,
 } from '@todo/core';
 import type { Db } from '../db/connection.js';
@@ -24,6 +25,8 @@ interface TaskRow {
   duration: number | null;
   position: number;
   completed_at: string | null;
+  recurrence: string | null;
+  recurrence_parent_id: string | null;
   source: string;
   external_id: string | null;
   created_at: string;
@@ -70,6 +73,11 @@ export class SqliteTaskRepository implements TaskRepository {
         where.push('t.due_date <= ?');
         params.push(filters.to);
       }
+    }
+
+    if (filters.completedFrom) {
+      where.push('t.completed_at >= ?');
+      params.push(filters.completedFrom);
     }
 
     if (filters.search) {
@@ -119,6 +127,15 @@ export class SqliteTaskRepository implements TaskRepository {
     return this.hydrate(rows);
   }
 
+  findByRecurrenceParent(parentId: string): Task | null {
+    const row = this.db
+      .prepare(
+        'SELECT * FROM tasks WHERE recurrence_parent_id = ? ORDER BY created_at DESC LIMIT 1',
+      )
+      .get(parentId) as TaskRow | undefined;
+    return row ? (this.hydrate([row])[0] ?? null) : null;
+  }
+
   create(task: NewTask): Task {
     const now = new Date().toISOString();
 
@@ -127,8 +144,8 @@ export class SqliteTaskRepository implements TaskRepository {
         .prepare(
           `INSERT INTO tasks
              (id, title, notes, due_date, duration, position, completed_at,
-              source, external_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+              recurrence, recurrence_parent_id, source, external_id, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           task.id,
@@ -137,6 +154,8 @@ export class SqliteTaskRepository implements TaskRepository {
           task.dueDate,
           task.duration,
           task.position,
+          task.recurrence,
+          task.recurrenceParentId,
           task.source,
           task.externalId,
           now,
@@ -164,6 +183,7 @@ export class SqliteTaskRepository implements TaskRepository {
     if (patch.dueDate !== undefined) assign('due_date', patch.dueDate);
     if (patch.duration !== undefined) assign('duration', patch.duration);
     if (patch.position !== undefined) assign('position', patch.position);
+    if (patch.recurrence !== undefined) assign('recurrence', patch.recurrence);
     if (patch.completed !== undefined) {
       assign('completed_at', patch.completed ? new Date().toISOString() : null);
     }
@@ -262,6 +282,8 @@ function toTask(row: TaskRow, tags: Tag[]): Task {
     duration: (row.duration as TaskDuration | null) ?? null,
     position: row.position,
     completedAt: row.completed_at,
+    recurrence: (row.recurrence as TaskRecurrence | null) ?? null,
+    recurrenceParentId: row.recurrence_parent_id,
     source: row.source as TaskSource,
     externalId: row.external_id,
     tags,

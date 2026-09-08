@@ -7,6 +7,7 @@ import { AppShell } from '@/presentation/components/layout/app-shell';
 import { EmptyState } from '@/presentation/components/task/empty-state';
 import { TaskItem } from '@/presentation/components/task/task-item';
 import { TaskListSkeleton } from '@/presentation/components/task/task-skeleton';
+import { useOpenNewTask } from '@/presentation/hooks/use-new-task';
 
 /** Liste des tags avec leur charge de travail en cours. */
 export function TagsPage() {
@@ -51,6 +52,7 @@ export function TagTasksPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const toggle = useToggleTask();
+  const openNewTask = useOpenNewTask();
   const { data: tags } = useTags();
   const { data: tasks, isPending } = useTasks(
     { status: 'open', tags: slug ? [slug] : [] },
@@ -68,12 +70,13 @@ export function TagTasksPage() {
       subtitle={tasks ? `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} en cours` : undefined}
       newTaskQuery={`?tag=${slug}`}
       actions={
-        <Link
-          to={`/new?tag=${slug}`}
+        <button
+          type="button"
+          onClick={() => openNewTask(`?tag=${slug}`)}
           className="rounded-lg px-3 py-1.5 text-sm text-primary hover:bg-accent"
         >
           Ajouter
-        </Link>
+        </button>
       }
     >
       {isPending ? (

@@ -76,4 +76,16 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: '002_task_recurrence',
+    sql: `
+      -- Répétition : 'daily' | 'weekly' | 'monthly' | 'yearly', NULL = ponctuelle.
+      ALTER TABLE tasks ADD COLUMN recurrence TEXT;
+      -- Occurrence dont la tâche est née : rouvrir le parent annule l'occurrence engendrée.
+      ALTER TABLE tasks ADD COLUMN recurrence_parent_id TEXT;
+
+      CREATE INDEX idx_tasks_recurrence_parent
+        ON tasks (recurrence_parent_id) WHERE recurrence_parent_id IS NOT NULL;
+    `,
+  },
 ];

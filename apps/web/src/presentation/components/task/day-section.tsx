@@ -4,7 +4,7 @@ import { fromDateOnly, isWeekend, relativeDayLabel, type DateOnly, type Task } f
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useOpenNewTask } from '@/presentation/hooks/use-new-task';
 import { cn } from '@/shared/lib/utils';
 import { SortableTaskItem } from './sortable-task-item';
 
@@ -22,6 +22,7 @@ export interface DaySectionProps {
  * permet de repousser une tâche à un jour où il n'y a encore rien.
  */
 export function DaySection({ date, tasks, onToggle, onOpen }: DaySectionProps) {
+  const openNewTask = useOpenNewTask();
   const { setNodeRef, isOver } = useDroppable({
     id: `${DAY_DROPPABLE_PREFIX}${date}`,
     data: { type: 'day', date },
@@ -68,13 +69,16 @@ export function DaySection({ date, tasks, onToggle, onOpen }: DaySectionProps) {
         </SortableContext>
 
         {tasks.length === 0 && (
-          <Link
-            to={`/new?date=${date}`}
-            className="flex h-11 items-center gap-2 rounded-xl px-3 text-sm text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+          <button
+            type="button"
+            // Bouton et non lien : le clavier doit se lever dans le geste même
+            // du tap (cf. use-new-task).
+            onClick={() => openNewTask(`?date=${date}`)}
+            className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-sm text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
           >
             <Plus className="size-4" />
             Ajouter une tâche
-          </Link>
+          </button>
         )}
       </div>
     </section>

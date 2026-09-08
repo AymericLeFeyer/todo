@@ -8,9 +8,10 @@ import {
   type DateOnly,
 } from '../entities/due-date.js';
 import { snapToDuration, type TaskDuration } from '../entities/duration.js';
+import type { TaskRecurrence } from '../entities/recurrence.js';
 
 export interface QuickParseMatch {
-  type: 'date' | 'duration' | 'tag';
+  type: 'date' | 'duration' | 'tag' | 'recurrence';
   text: string;
   start: number;
   end: number;
@@ -21,6 +22,7 @@ export interface QuickParseResult {
   title: string;
   dueDate: DateOnly | null;
   duration: TaskDuration | null;
+  recurrence: TaskRecurrence | null;
   tagNames: string[];
   matches: QuickParseMatch[];
 }
@@ -34,6 +36,29 @@ const WEEKDAYS: Record<string, number> = {
   samedi: 6,
   dimanche: 7,
 };
+
+/**
+ * Répétitions reconnues. La forme « tous les <jour> » capture le jour dans la
+ * même expression : sans cela, le fragment « lundi » serait retiré du titre
+ * deux fois par `stripMatches`, avec des indices qui se chevauchent.
+ */
+const RECURRENCE_RULES: Array<{ re: RegExp; recurrence: TaskRecurrence; weekday?: true }> = [
+  { re: /\b(?:tous\s+les\s+jours|chaque\s+jour|quotidien(?:ne)?s?)\b/giu, recurrence: 'daily' },
+  {
+    re: /\b(?:toutes\s+les\s+semaines|chaque\s+semaine|hebdo(?:madaire)?s?)\b/giu,
+    recurrence: 'weekly',
+  },
+  { re: /\b(?:tous\s+les\s+mois|chaque\s+mois|mensuel(?:le)?s?)\b/giu, recurrence: 'monthly' },
+  {
+    re: /\b(?:tous\s+les\s+ans|chaque\s+ann[ée]e|toutes\s+les\s+ann[ée]es|annuel(?:le)?s?)\b/giu,
+    recurrence: 'yearly',
+  },
+  {
+    re: /\b(?:tous\s+les|chaque)\s+(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)s?\b/giu,
+    recurrence: 'weekly',
+    weekday: true,
+  },
+];
 
 const TAG_RE = /#([\p{L}\p{N}][\p{L}\p{N}_-]*)/gu;
 const MINUTES_RE = /\b(\d{1,3})\s*(?:min\b|mins\b|minutes?\b|m\b)/giu;
@@ -54,6 +79,7 @@ export function quickParse(input: string, now: Date = new Date()): QuickParseRes
   const tagNames: string[] = [];
   let dueDate: DateOnly | null = null;
   let duration: TaskDuration | null = null;
+  let recurrence: TaskRecurrence | null = null;
 
   const record = (type: QuickParseMatch['type'], text: string, start: number) => {
     matches.push({ type, text, start, end: start + text.length });
@@ -65,6 +91,24 @@ export function quickParse(input: string, now: Date = new Date()): QuickParseRes
     tagNames.push(name);
     record('tag', match[0], match.index);
   }
+
+  // La répétition passe en premier : « tous les lundis » fixe aussi
+  // l'échéance, et son fragment doit être réservé avant l'analyse des dates.
+  for (const rule of RECURRENCE_RULES) {
+    if (recurrence !== null) break;
+    for (const match of input.matchAll(rule.re)) {
+      recurrence = rule.recurrence;
+      record('recurrence', match[0], match.index);
+      if (rule.weekday) {
+        const iso = WEEKDAYS[(match[1] as string).toLowerCase()];
+        if (iso) dueDate = nextWeekday(iso, now);
+      }
+      break;
+    }
+  }
+
+  const overlapsMatch = (start: number, end: number) =>
+    matches.some((match) => start < match.end && end > match.start);
 
   const takeDuration = (re: RegExp, toMinutes: (m: RegExpMatchArray) => number) => {
     if (duration !== null) return;
@@ -88,6 +132,7 @@ export function quickParse(input: string, now: Date = new Date()): QuickParseRes
   const takeDate = (re: RegExp, resolve: (m: RegExpMatchArray) => DateOnly | null) => {
     if (dueDate !== null) return;
     for (const match of input.matchAll(re)) {
+      if (overlapsMatch(match.index, match.index + match[0].length)) continue;
       const resolved = resolve(match);
       if (!resolved) continue;
       dueDate = resolved;
@@ -108,10 +153,15 @@ export function quickParse(input: string, now: Date = new Date()): QuickParseRes
   });
   takeDate(NUMERIC_DATE_RE, (m) => resolveNumericDate(m, now));
 
+  // Une répétition sans échéance ne s'accrocherait à rien : la première
+  // occurrence part donc d'aujourd'hui.
+  if (recurrence !== null && dueDate === null) dueDate = today(now);
+
   return {
     title: stripMatches(input, matches),
     dueDate,
     duration,
+    recurrence,
     tagNames,
     matches: matches.sort((a, b) => a.start - b.start),
   };

@@ -1,8 +1,9 @@
 import { CalendarDays, Hash, Inbox, ListTodo, Plus, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useTodayStats } from '@/application/task/task-queries';
 import { useHeaderHeight } from '@/presentation/hooks/use-header-height';
+import { useOpenNewTask } from '@/presentation/hooks/use-new-task';
 import { cn } from '@/shared/lib/utils';
 
 interface NavItem {
@@ -41,7 +42,7 @@ export interface AppShellProps {
  * d'ajout reste flottant et toujours accessible, c'est l'action principale.
  */
 export function AppShell({ title, subtitle, actions, newTaskQuery, children }: AppShellProps) {
-  const navigate = useNavigate();
+  const openNewTask = useOpenNewTask();
   const { data: stats } = useTodayStats();
   const headerRef = useHeaderHeight();
 
@@ -78,7 +79,8 @@ export function AppShell({ title, subtitle, actions, newTaskQuery, children }: A
 
       <button
         type="button"
-        onClick={() => navigate(`/new${newTaskQuery ?? ''}`)}
+        // Le clavier se lève dans le geste même du tap (cf. use-new-task).
+        onClick={() => openNewTask(newTaskQuery)}
         aria-label="Ajouter une tâche"
         className={cn(
           'fixed right-5 z-40 flex size-14 items-center justify-center rounded-full',
