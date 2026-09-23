@@ -27,15 +27,20 @@ async function createTask(body: Record<string, unknown>): Promise<Task> {
   return response.json<Task>();
 }
 
-/** Demain, au format `YYYY-MM-DD` local. */
-function tomorrowDate(): string {
+/** Date décalée de `offset` jours par rapport à aujourd'hui, au format `YYYY-MM-DD` local. */
+function dateOffset(offset: number): string {
   const date = new Date();
-  date.setDate(date.getDate() + 1);
+  date.setDate(date.getDate() + offset);
   return [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, '0'),
     String(date.getDate()).padStart(2, '0'),
   ].join('-');
+}
+
+/** Demain, au format `YYYY-MM-DD` local. */
+function tomorrowDate(): string {
+  return dateOffset(1);
 }
 
 async function listTasks(query = ''): Promise<Task[]> {
@@ -202,9 +207,11 @@ describe('tâches répétées', () => {
   const complete = (id: string) => app.inject({ method: 'POST', url: `/api/tasks/${id}/complete` });
 
   it("engendre l'occurrence suivante quand on termine la tâche", async () => {
+    // Échéance dans le futur : aucun rattrapage de nextOccurrence, donc +7 jours exacts.
+    const dueDate = dateOffset(1);
     const task = await createTask({
       title: 'Arroser les plantes',
-      dueDate: '2026-09-08',
+      dueDate,
       duration: 15,
       recurrence: 'weekly',
       tags: ['maison'],
@@ -217,7 +224,7 @@ describe('tâches répétées', () => {
     expect(open).toHaveLength(1);
     expect(open[0]).toMatchObject({
       title: 'Arroser les plantes',
-      dueDate: '2026-09-15',
+      dueDate: dateOffset(8),
       duration: 15,
       recurrence: 'weekly',
       recurrenceParentId: task.id,
