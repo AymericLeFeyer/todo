@@ -64,6 +64,14 @@ export function AppShell({ title, subtitle, actions, newTaskQuery, children }: A
           ref={headerRef}
           className="safe-top sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur"
         >
+          {/* `black-translucent` fixe les icônes de la barre de statut iOS en
+              blanc quel que soit le thème : sans ce bandeau, elles
+              deviennent illisibles sur un fond clair. Reste sombre même en
+              thème clair ; invisible partout où l'encoche n'existe pas. */}
+          <div
+            className="absolute inset-x-0 top-0 bg-black/40"
+            style={{ height: 'env(safe-area-inset-top)' }}
+          />
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>

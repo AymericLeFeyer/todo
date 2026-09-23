@@ -1,6 +1,6 @@
 # CLAUDE.md — Todo
 
-Dernière mise à jour : 2026-09-08
+Dernière mise à jour : 2026-09-23
 
 Gestionnaire de tâches auto-hébergé (homelab, accès VPN). PWA mobile-first +
 API REST filtrable par tags consommée par AyLabs.
@@ -183,6 +183,21 @@ Routes publiques (sans authentification) : `/api/health`, `/api/auth/login`,
   `env(safe-area-inset-*)` — l'en-tête (`safe-top`), la barre d'onglets, et les
   notifications, dont le décalage passe par les props `offset` / `mobileOffset`
   de sonner. Sans cela, les messages disparaissent sous l'heure de l'iPhone.
+- **Thème clair/sombre, système par défaut** : `.dark` sur `<html>` est posé
+  par un script bloquant en tête d'`index.html` (avant tout rendu, pour éviter
+  le flash du mauvais thème), puis tenu à jour à chaud par
+  `infrastructure/system/theme.ts` (`watchSystemTheme`, appelé depuis
+  `main.tsx`) — pas de bascule manuelle, uniquement `prefers-color-scheme`.
+  Les variables des deux thèmes existaient déjà dans `globals.css` ; seul le
+  verrouillage sur `dark` empêchait le clair de s'afficher. Le
+  `theme_color` du manifest PWA reste figé sur la teinte sombre : le format
+  manifeste n'admet qu'une seule valeur, sans media query.
+- **Barre de statut iOS toujours illisible en clair sans bandeau dédié** :
+  `black-translucent` (nécessaire pour l'en-tête edge-to-edge) fixe les icônes
+  de la barre de statut en blanc quel que soit le thème de l'app. `AppShell`
+  pose donc un bandeau `bg-black/40` haut de `env(safe-area-inset-top)`,
+  toujours sombre indépendamment du thème — sans lui, l'heure et la batterie
+  deviennent invisibles sur fond clair.
 - **Clavier virtuel** : iOS ne redimensionne pas la fenêtre à son ouverture, si
   bien que `100dvh` et `sticky bottom-0` visent toujours le bas de l'écran
   physique. `useKeyboardInset` lit `visualViewport` et publie
@@ -198,9 +213,18 @@ Routes publiques (sans authentification) : `/api/health`, `/api/auth/login`,
   principal ferme la fiche en enregistrant titre et notes, la complétion est
   une action distincte en bas d'écran. Les confondre donnait l'impression que
   modifier une tâche la faisait disparaître.
-- **Glisser-déposer mobile** : l'activation par appui long
-  (`delay: 200, tolerance: 6`) est ce qui empêche le défilement au pouce
-  d'arracher une tâche. Ne pas la retirer.
+- **Glisser-déposer, capteurs séparés souris/tactile** : `UpcomingPage` utilise
+  un `MouseSensor` (`distance: 4`, sans délai) et un `TouchSensor`
+  (`delay: 200, tolerance: 6`) plutôt qu'un seul `PointerSensor` partagé. Un
+  délai commun aux deux annule un glisser rapide à la souris dès que le
+  curseur dépasse la tolérance avant la fin du délai — c'était la cause du
+  « drag & drop qui ne marche pas » au clavier/souris. Sur tactile, ce délai
+  reste nécessaire : sans lui, le moindre défilement au pouce arracherait une
+  tâche. Ne pas fusionner les deux capteurs.
+- **Poignée de glisser-déposer** : `SortableTaskItem` affiche une icône
+  `GripVertical` (décorative, sans écouteurs propres) pour signaler que toute
+  la ligne se glisse ; elle est estompée par défaut et pleine au survol
+  (souris) ou pendant le glisser (tactile, où il n'y a pas de survol).
 - **Pas de virtualisation dans l'agenda**, volontairement : elle casserait le
   dépôt inter-sections pour un gain nul à cette volumétrie.
 - **Le heredoc bash convertit `\uXXXX`.** Pour écrire une séquence unicode

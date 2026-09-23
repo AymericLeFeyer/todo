@@ -2,7 +2,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -44,11 +45,13 @@ export function UpcomingPage() {
   const agenda = useMemo(() => buildAgenda(tasks ?? [], from, to), [tasks, from, to]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      // Appui long avant de saisir : sans ce délai, le moindre défilement au
-      // pouce arracherait une tâche au lieu de faire défiler la liste.
-      activationConstraint: { delay: 200, tolerance: 6 },
-    }),
+    // Souris : démarrage sur un léger déplacement, sans délai — un délai
+    // partagé avec le tactile annulerait un glisser rapide dès que le
+    // curseur dépasse la tolérance avant la fin du délai.
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    // Tactile : appui long avant de saisir, sans quoi le moindre défilement
+    // au pouce arracherait une tâche au lieu de faire défiler la liste.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
